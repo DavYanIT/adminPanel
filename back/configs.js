@@ -14,5 +14,6 @@ module.exports = {
         password:   "verySecurePass",
         host:       "localhost",
         database:   "adminpanel",
-    }
+    },
+    SECRET_KEY:     "someKey"
 }

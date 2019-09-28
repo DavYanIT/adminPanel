@@ -1,10 +1,10 @@
 const { Client } = require('pg'),
-    { encrypt, doesMatch } = require('./hash'),
+    { encrypt, doesMatch, verifyToken, createToken } = require('./hash'),
     express = require("express"),
     app = express(),
     configs = require('./configs');
 
-app.post("/user", async (req, res) => {
+app.post("/user", verifyToken, async (req, res) => {
     const client = new Client(configs.client);
     // TODO: check admin role and for god sake check the login
     const { nickname, password, role } = req.body
@@ -38,7 +38,7 @@ app.post("/user", async (req, res) => {
 app.post("/login", async (req, res) => {
     const client = new Client(configs.client);
     const { nickname, password } = req.body;
-    let user;
+    let token;
 
     try {
         await client.connect();
@@ -46,7 +46,7 @@ app.post("/login", async (req, res) => {
             SELECT * FROM users
             WHERE nickname = '${nickname}';
         `);
-        user = result.rows[0]
+        const user = result.rows[0]
         if (!user) {
             res.statusCode = 401;
             res.statusMessage = 'Wrong nickname!';
@@ -57,16 +57,21 @@ app.post("/login", async (req, res) => {
             console.log(`Wrong password '${password}'!`);
         } else {
             res.statusCode = 200;
+            token = await createToken(user)
             console.log(`User '${user.nickname}' logged in.`);
         }
     } catch(err) {
         res.statusCode = 500;
         console.log(`Something went wrong ${err}`);
     } finally {
-        delete user.password;
-        res.json({ user });
+        res.json({ token });
         client.end();
     }
+})
+
+app.get("/isLoggedIn", verifyToken, (req, res) => {
+    const { nickname, role } = req.user
+    res.status(200).json({ nickname, role });
 })
 
 module.exports = app;

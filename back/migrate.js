@@ -1,4 +1,5 @@
 const { Client } = require('pg'),
+    { encrypt } = require('./hash'),
     configs = require('./configs');
 
 const client = new Client(configs.client);
@@ -34,10 +35,11 @@ async function init() {
             );
         `);
         console.log('Created reports table');
-        const { nickname, password, role } = configs.DEFAULT_ADMIN
+        const { nickname, password, role } = configs.DEFAULT_ADMIN;
+        const encriptedPassword = await encrypt(password);
         await client.query(`
             INSERT INTO users (nickname, password, role) VALUES
-                ('${nickname}', '${password}', '${role}');
+                ('${nickname}', '${encriptedPassword}', '${role}');
         `);
         console.log('Inserted default admin');
         await client.query('COMMIT');
